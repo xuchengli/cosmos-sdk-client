@@ -26,22 +26,22 @@ import (
 const (
     lixucArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
 kdf: bcrypt
-salt: 3C150FFE06291407FE53D146DF9BB52B
+salt: 209F390BD6E0653D9AC3BED85E4499EE
 type: secp256k1
 
-ssRB1i4rAgJH4t6ie5B4XNlYWsuLUgjYWXK89889oIV3fPLsObIZDqlMZTa5Ju+A
-XGBYm3PJXvpGh//1TU/Ahgtrff/xgrvAfDRQq80=
-=3Zgm
+GGn020H4+UZhfyqOrvU6lV3KW8UQo3SuB2HxMO2rnzo16PBWsDpX9mcaV+aEThr2
+iPZk/nSYn/Ml4aVY6XuWvFfwJAHbemRwbeAxZHM=
+=+2hb
 -----END TENDERMINT PRIVATE KEY-----`
 
     ligpArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
-salt: 90FC406C6DE16464FE90EC8142D9809C
+salt: C1F283351E6F6A9C07A748764B07D4F2
 type: secp256k1
 kdf: bcrypt
 
-dUae0o407Q8+YV8Zyn5wP37aF4x9MQP4SV1fB4v2pl8A2/0Zqw3gvIyGon06Nqac
-zUxJVZWL3vzgg0QdjaR9eVtqzvbJlxxl7lk37ug=
-=QDqi
+C/KqjXGU/3X+ZsWfRhqS400/2+l6NN0GOzoPkYJuFTs9POnDXhwhRZmt1/UOj9na
+MKL18PP8LCPjVPevYJckNZOfhAstrGbbHNQmfSw=
+=KLRC
 -----END TENDERMINT PRIVATE KEY-----`
 )
 
@@ -232,7 +232,7 @@ func main() {
     accounts := []*Account{&lixuc, &ligp}
     var acc1, acc2 *Account
 
-    for i := 0; i < 100; i++ {
+    for i := 0; i < 10; i++ {
         if i % 2 == 0 {
             acc1 = accounts[0]
             acc2 = accounts[1]
