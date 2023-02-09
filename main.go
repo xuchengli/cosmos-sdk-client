@@ -4,10 +4,14 @@ import (
     "context"
     "cosmos-client/simapp"
     "fmt"
+    "time"
 
     "google.golang.org/grpc"
+    "github.com/goombaio/namegenerator"
 
     "github.com/cosmos/cosmos-sdk/crypto"
+    "github.com/cosmos/cosmos-sdk/crypto/hd"
+    "github.com/cosmos/cosmos-sdk/crypto/keyring"
     "github.com/tendermint/tendermint/libs/log"
     "github.com/cosmos/cosmos-sdk/types/tx"
     "github.com/cosmos/cosmos-sdk/types/tx/signing"
@@ -23,7 +27,8 @@ import (
 )
 
 const (
-    lixucArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
+    genesisRawAddress string = "cosmos1dxfeuswss2mrgsq7lv36lwk3272g99f07anqff"
+    genesisArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
 kdf: bcrypt
 salt: 209F390BD6E0653D9AC3BED85E4499EE
 type: secp256k1
@@ -31,26 +36,6 @@ type: secp256k1
 GGn020H4+UZhfyqOrvU6lV3KW8UQo3SuB2HxMO2rnzo16PBWsDpX9mcaV+aEThr2
 iPZk/nSYn/Ml4aVY6XuWvFfwJAHbemRwbeAxZHM=
 =+2hb
------END TENDERMINT PRIVATE KEY-----`
-
-    ligpArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
-salt: C1F283351E6F6A9C07A748764B07D4F2
-type: secp256k1
-kdf: bcrypt
-
-C/KqjXGU/3X+ZsWfRhqS400/2+l6NN0GOzoPkYJuFTs9POnDXhwhRZmt1/UOj9na
-MKL18PP8LCPjVPevYJckNZOfhAstrGbbHNQmfSw=
-=KLRC
------END TENDERMINT PRIVATE KEY-----`
-
-    bobArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
-kdf: bcrypt
-salt: 09FA96C26AFD460C1DE1301AD1FED824
-type: secp256k1
-
-ySjPj2d6R/n0B7wVoI0Uz3uUsNEbgsMReNCKpvszZ0tcV+IDl2fd9gua3kURxdDh
-CkLY8VZYztPaxuIslQVPh8FVxfJOGgvRRLJE4Qs=
-=Nhhh
 -----END TENDERMINT PRIVATE KEY-----`
 )
 
@@ -183,60 +168,73 @@ func (tc TxClient) mustSendTx(acc1, acc2 *Account, amount int64) (uint32, string
     }
 }
 
+func (tc TxClient) generateAccount(genesisAccount Account) (*Account, error) {
+    seed := time.Now().UTC().UnixNano()
+    nameGenerator := namegenerator.NewNameGenerator(seed)
+    name := nameGenerator.Generate()
+
+    kr := keyring.NewInMemory(tc.app.AppCodec())
+
+    record, _, err := kr.NewMnemonic(name, keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+    if err != nil {
+        return nil, err
+    }
+
+    addr, err := record.GetAddress()
+    if err != nil {
+        return nil, err
+    }
+
+    armorPrivKey, err := kr.ExportPrivKeyArmor(record.Name, "passw0rd")
+    if err != nil {
+        return nil, err
+    }
+    privKey, _, err := crypto.UnarmorDecryptPrivKey(armorPrivKey, "passw0rd")
+    if err != nil {
+        return nil, err
+    }
+
+    account := Account{
+        uid:  name,
+        addr: addr,
+        priv: privKey,
+    }
+
+    // 通过创世账户转账给新账户, 新账户进行上链
+    code, hash, log, err := tc.mustSendTx(&genesisAccount, &account, 1000)
+    if err != nil {
+        return nil, err
+    }
+    fmt.Printf("激活账户: %s, 地址: %s, code: %d, txhash: %s, rawlog: %s\n", name, addr.String(), code, hash, log)
+
+    return &account, nil
+}
+
 func main() {
     app := simapp.NewSimApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(simapp.DefaultNodeHome))
 
-    // 准备账户
-    lixucAddress, err := sdk.AccAddressFromBech32("cosmos1dxfeuswss2mrgsq7lv36lwk3272g99f07anqff")
+    // 创世账户
+    genesisAddress, err := sdk.AccAddressFromBech32(genesisRawAddress)
     if err != nil {
         panic(err)
     }
-    lixucPrivKey, _, err := crypto.UnarmorDecryptPrivKey(lixucArmorPrivKey, "passw0rd")
+    genesisPrivKey, _, err := crypto.UnarmorDecryptPrivKey(genesisArmorPrivKey, "passw0rd")
     if err != nil {
         panic(err)
     }
-    lixuc := Account{
-        uid:  "lixuc",
-        addr: lixucAddress,
-        priv: lixucPrivKey,
+    genesis := Account{
+        addr: genesisAddress,
+        priv: genesisPrivKey,
     }
 
-    ligpAddress, err := sdk.AccAddressFromBech32("cosmos1vqhcxnhkmcm4ptphy75lqvh0daysf8eyuwccnv")
-    if err != nil {
-        panic(err)
-    }
-    ligpPrivKey, _, err := crypto.UnarmorDecryptPrivKey(ligpArmorPrivKey, "passw0rd")
-    if err != nil {
-        panic(err)
-    }
-    ligp := Account{
-        uid:  "ligp",
-        addr: ligpAddress,
-        priv: ligpPrivKey,
-    }
-
-    bobAddress, err := sdk.AccAddressFromBech32("cosmos12llzcc3xz5mn3cqdppte9729546md4flsf6c7q")
-    if err != nil {
-        panic(err)
-    }
-    bobPrivKey, _, err := crypto.UnarmorDecryptPrivKey(bobArmorPrivKey, "passw0rd")
-    if err != nil {
-        panic(err)
-    }
-    bob := Account{
-        uid:  "bob",
-        addr: bobAddress,
-        priv: bobPrivKey,
-    }
-
-    // Create a connection to the gRPC server.
+    // gRPC连接
     grpcConn, err := grpc.Dial("127.0.0.1:9090", grpc.WithInsecure())
     if err != nil {
         panic(err)
     }
     defer grpcConn.Close()
 
-    // 准备交易
+    // 客户端
     txClient := TxClient{
         ctx:           context.Background(),
         app:           app,
@@ -244,8 +242,30 @@ func main() {
         serviceClient: tx.NewServiceClient(grpcConn),
     }
 
-    accounts := []*Account{&lixuc, &ligp, &bob}
+    // 生成一批账户
+    accounts := []*Account{}
 
+    // 查询创世账户的编号和签名序列号
+    accNum, accSeq, err := txClient.queryAccount(genesis.addr)
+    if err != nil {
+        panic(err)
+    }
+    genesis.accNum = accNum
+    genesis.accSeq = accSeq
+
+    for i := 0; i < 5; i++ {
+        account, err := txClient.generateAccount(genesis)
+        if err != nil {
+            panic(err)
+        }
+        genesis.accSeq = genesis.accSeq + 1
+
+        accounts = append(accounts, account)
+    }
+
+    time.Sleep(time.Second)
+
+    // 设置所有账户的编号和签名序列号
     for _, acc := range accounts {
         // 查询账户
         accNum, accSeq, err := txClient.queryAccount(acc.addr)
@@ -256,6 +276,7 @@ func main() {
         acc.accSeq = accSeq
     }
 
+    // 轮流转账
     for {
         func(from, to *Account) {
             // 转账
