@@ -6,7 +6,7 @@ import (
     "github.com/cosmos/cosmos-sdk/crypto/hd"
     "github.com/cosmos/cosmos-sdk/crypto/keyring"
     "github.com/tendermint/tendermint/libs/log"
-    "strings"
+    // "strings"
 
     simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
     sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,6 +16,7 @@ import (
 func main() {
     app := simapp.NewSimApp(log.NewNopLogger(), dbm.NewMemDB(), nil, true, simtestutil.NewAppOptionsWithFlagHome(simapp.DefaultNodeHome))
 
+    /*
     kb, err := keyring.New("sim", keyring.BackendOS, simapp.DefaultNodeHome, strings.NewReader(""), app.AppCodec())
 	if err != nil {
 		panic(err)
@@ -27,7 +28,6 @@ func main() {
     }
     fmt.Println(r.Name)
 
-    /*
     records, err := kb.List()
     if err != nil {
         panic(err)
@@ -48,4 +48,22 @@ func main() {
         fmt.Println(armor)
     }
     */
+
+    kr := keyring.NewInMemory(app.AppCodec())
+
+    record, _, err := kr.NewMnemonic("alice", keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+    if err != nil {
+        panic(err)
+    }
+    addr, err := record.GetAddress()
+    if err != nil {
+        panic(err)
+    }
+    fmt.Printf("uid: %s, addr: %s\n", record.Name, addr.String())
+
+    armor, err := kr.ExportPrivKeyArmor(record.Name, "passw0rd")
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println(armor)
 }
