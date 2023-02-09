@@ -4,7 +4,6 @@ import (
     "context"
     "cosmos-client/simapp"
     "fmt"
-    "sync"
 
     "google.golang.org/grpc"
 
@@ -176,6 +175,7 @@ func (tc TxClient) mustSendTx(acc1, acc2 *Account, amount int64) (uint32, string
         if err != nil {
             return 1, "", "", err
         }
+        // mempool 满了等待
         if code == 20 {
             continue
         }
@@ -244,36 +244,33 @@ func main() {
         serviceClient: tx.NewServiceClient(grpcConn),
     }
 
-    accounts := []Account{lixuc, ligp}
+    accounts := []*Account{&lixuc, &ligp, &bob}
 
-    var wg sync.WaitGroup
-    wg.Add(len(accounts))
+    for _, acc := range accounts {
+        // 查询账户
+        accNum, accSeq, err := txClient.queryAccount(acc.addr)
+        if err != nil {
+            panic(err)
+        }
+        acc.accNum = accNum
+        acc.accSeq = accSeq
+    }
 
-    for i := 0; i < len(accounts); i++ {
-        go func(acc Account, deferFunc func()) {
-            defer deferFunc()
-
-            // 查询账户
-            accNum, accSeq, err := txClient.queryAccount(acc.addr)
-            if err != nil {
-                panic(err)
-            }
-            acc.accNum = accNum
-            acc.accSeq = accSeq
-
+    for {
+        func(from, to *Account) {
             // 转账
-            for i := 0; i < 3000; i++ {
-                code, hash, log, err := txClient.mustSendTx(&acc, &bob, 1)
+            for i := 0; i < 1000; i++ {
+                code, hash, log, err := txClient.mustSendTx(from, to, 1)
                 if err != nil {
                     panic(err)
                 }
 
-                fmt.Printf("account: %s, code: %d, txhash: %s, rawlog: %s\n", acc.uid, code, hash, log)
+                fmt.Printf("account: %s, code: %d, txhash: %s, rawlog: %s\n", from.uid, code, hash, log)
 
-                acc.accSeq = acc.accSeq + 1
+                from.accSeq = from.accSeq + 1
             }
+        }(accounts[0], accounts[1])
 
-        }(accounts[i], wg.Done)
+        accounts = append(accounts[1:], accounts[0])
     }
-    wg.Wait()
 }
