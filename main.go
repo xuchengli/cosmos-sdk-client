@@ -27,15 +27,15 @@ import (
 )
 
 const (
-    genesisRawAddress string = "cosmos1dxfeuswss2mrgsq7lv36lwk3272g99f07anqff"
+    genesisRawAddress string = "cosmos15e69645gtzwl5pl9yj3us0wvzp4n6zg9uzhru7"
     genesisArmorPrivKey string = `-----BEGIN TENDERMINT PRIVATE KEY-----
-kdf: bcrypt
-salt: 209F390BD6E0653D9AC3BED85E4499EE
 type: secp256k1
+kdf: bcrypt
+salt: 516ACBC5A67598787E4B0833B6FBD08F
 
-GGn020H4+UZhfyqOrvU6lV3KW8UQo3SuB2HxMO2rnzo16PBWsDpX9mcaV+aEThr2
-iPZk/nSYn/Ml4aVY6XuWvFfwJAHbemRwbeAxZHM=
-=+2hb
+II8jjQ6pp9N0bsxJxiy0wCCTThpdkkCKms9Fl5/yE21GlqZn5m2D3hVhwlU6pJn5
+6Kc5NZCi+EW/FnV59nv8L3TJ2UHQO0JI4x/6rC4=
+=3Me5
 -----END TENDERMINT PRIVATE KEY-----`
 )
 
@@ -263,7 +263,7 @@ func main() {
         accounts = append(accounts, account)
     }
 
-    time.Sleep(time.Second)
+    time.Sleep(time.Second * 5)
 
     // 设置所有账户的编号和签名序列号
     for _, acc := range accounts {
