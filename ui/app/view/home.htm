@@ -6,31 +6,49 @@
     <script type="text/javascript" src="/public/js/socket.io.js"></script>
   </head>
   <body>
-      <div id="main" style="width:800px;height:600px;"></div>
+      <div id="main" style="width:1300px;height:700px;"></div>
       <script type="text/javascript">
         window.onload = function () {
+            var data = [];
             var myChart = echarts.init(document.getElementById('main'));
 
             var option = {
               title: {
-                text: 'ECharts 入门示例'
+                  text: 'CPU使用率',
               },
-              tooltip: {},
-              legend: {
-                data: ['销量']
+              tooltip: {
+                  trigger: 'axis',
+                  formatter: params => {
+                      params = params[0];
+                      var date = new Date(params.value[0]);
+                      var hours = date.getHours().toString().padStart(2, '0');
+                      var minutes = date.getMinutes().toString().padStart(2, '0');
+                      var seconds = date.getSeconds().toString().padStart(2, '0');
+
+                      return `${hours}:${minutes}:${seconds} - ${params.value[1]}%`;
+                  },
+                  axisPointer: {
+                      animation: false,
+                  },
               },
               xAxis: {
-                data: ['衬衫', '羊毛衫', '雪纺衫', '裤子', '高跟鞋', '袜子']
+                  type: 'time',
               },
-              yAxis: {},
+              yAxis: {
+                  type: 'value',
+                  boundaryGap: [0, '20%'],
+              },
               series: [
                 {
-                  name: '销量',
-                  type: 'bar',
-                  data: [5, 20, 36, 10, 10, 20]
+                  name: 'CPU占用百分比',
+                  type: 'line',
+                  // smooth: true,
+                  showSymbol: false,
+                  data: data,
                 }
               ]
             };
+            myChart.setOption(option);
 
             // init
             const socket = io('/', {
@@ -39,9 +57,12 @@
 
             socket.on('connect', () => {
                 socket.on('res', msg => {
-                    console.log('接受到消息: ', msg);
+                    // console.log('接受到消息: ', msg);
+                    data.push([ Date.now(), msg ]);
 
-                    myChart.setOption(option);
+                    myChart.setOption({
+                        series: [ { data: data } ]
+                    });
                 });
             });
 

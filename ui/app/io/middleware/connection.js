@@ -9,8 +9,8 @@ module.exports = (app) => {
         });
         top.stdout.on('data', data => {
             const cpu = data.toString().split('\n')[12];
-            
-            console.log('cpu使用率: ', cpu);
+
+            // console.log('cpu使用率: ', cpu);
 
             ctx.socket.emit('res', cpu);
         });
