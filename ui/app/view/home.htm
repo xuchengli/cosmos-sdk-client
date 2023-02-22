@@ -43,7 +43,7 @@
                   name: 'CPU占用百分比',
                   type: 'line',
                   // smooth: true,
-                  showSymbol: false,
+                  // showSymbol: false,
                   data: data,
                 }
               ]
@@ -58,6 +58,10 @@
             socket.on('connect', () => {
                 socket.on('res', msg => {
                     // console.log('接受到消息: ', msg);
+
+                    if (data.length >= 3600) {
+                        data.shift();
+                    }
                     data.push([ Date.now(), msg ]);
 
                     myChart.setOption({
