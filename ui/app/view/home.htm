@@ -10,6 +10,7 @@
       <script type="text/javascript">
         window.onload = function () {
             var data = [];
+            var wave = [];
             var myChart = echarts.init(document.getElementById('main'));
 
             var option = {
@@ -45,6 +46,12 @@
                   // smooth: true,
                   showSymbol: false,
                   data: data,
+                  markArea: {
+                      itemStyle: {
+                          color: 'rgba(255, 173, 177, 0.4)'
+                      },
+                      data: wave,
+                  },
                 }
               ]
             };
@@ -64,8 +71,32 @@
                     }
                     data.push([ Date.now(), msg ]);
 
+                    if (data.length > 1) {
+                        const per = Math.abs(data[data.length - 1][1] - data[data.length - 2][1]) / data[data.length - 2][1] * 100;
+
+                        // console.log(per);
+
+                        if (per >= 10) {
+                            wave.push([
+                                {
+                                    coord: data[data.length - 2],
+                                },
+                                {
+                                    coord: data[data.length - 1],
+                                },
+                            ]);
+                        }
+                    }
+
                     myChart.setOption({
-                        series: [ { data: data } ]
+                        series: [
+                            {
+                                data: data,
+                                markArea: {
+                                    data: wave,
+                                }
+                            },
+                        ]
                     });
                 });
             });
