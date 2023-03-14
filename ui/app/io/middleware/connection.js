@@ -4,7 +4,7 @@ const { spawn } = require('child_process');
 
 module.exports = (app) => {
     return async (ctx, next) => {
-        const top = spawn(`top -pid $(ps -ef | grep -v grep | grep tendermint | awk '{print $2}') -stats cpu`, {
+        const top = spawn(`top -pid $(ps -ef | grep -v grep | grep rpcserver | awk '{print $2}') -stats cpu`, {
             shell: true,
         });
         top.stdout.on('data', data => {
